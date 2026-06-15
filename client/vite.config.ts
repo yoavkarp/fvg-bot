@@ -17,10 +17,16 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
+    // Inside the dev docker stack, nginx serves the app on :80 and routes /api
+    // to the server, so HMR's websocket must point back at the public port.
+    hmr: process.env.DOCKER_DEV ? { clientPort: 80 } : undefined,
     proxy: {
-      // In dev, forward API calls to the local server (server.ts listens on 3001
-      // and mounts /list and /scan at the root). Strip the /api prefix so the
-      // client can use the same `/api/*` paths it uses behind nginx in prod.
+      // For a bare `vite` (no docker), forward API calls to the local server
+      // (server.ts listens on 3001 and mounts /list and /scan at the root).
+      // Strip the /api prefix so the client uses the same `/api/*` paths it
+      // uses behind nginx in prod. Behind the docker proxy this is unused —
+      // nginx handles /api routing before requests ever reach vite.
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
