@@ -14,6 +14,7 @@ services:
     expose:
       - "3001"
     volumes:
+      - ./.env:/app/.env:ro
       - ./server/db.json:/app/db.json
     restart: unless-stopped
 
