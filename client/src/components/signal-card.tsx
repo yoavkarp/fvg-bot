@@ -5,6 +5,7 @@ import {
   Shield,
   Activity,
   ExternalLink,
+  TrendingUp,
 } from "lucide-react"
 
 import type { Signal } from "@/lib/api"
@@ -12,9 +13,11 @@ import { cn } from "@/lib/utils"
 import {
   formatDate,
   formatNumber,
+  formatPercent,
   formatPrice,
   riskReward,
   tradingViewUrl,
+  winPercent,
 } from "@/lib/format"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -47,6 +50,9 @@ function Stat({
 export function SignalCard({ signal }: { signal: Signal }) {
   const isBull = signal.type === "bull"
   const rr = riskReward(signal.avg, signal.takeProfit, signal.stopLoss)
+  // Win % uses the live price as entry, falling back to the gap average.
+  const entry = signal.price ?? signal.avg
+  const winPct = winPercent(entry, signal.takeProfit)
 
   return (
     <Card className="gap-4 overflow-hidden py-0">
@@ -92,8 +98,29 @@ export function SignalCard({ signal }: { signal: Signal }) {
       </CardHeader>
 
       <CardContent className="px-5 pb-5">
+        {/* Current price + gain if the trade wins */}
+        <div className="flex items-stretch justify-between gap-3 rounded-lg border bg-background/40 p-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-muted-foreground text-[11px] uppercase tracking-wide">
+              Current Price
+            </span>
+            <span className="font-mono text-xl font-semibold tabular-nums">
+              {signal.price != null ? formatPrice(signal.price) : "—"}
+            </span>
+          </div>
+          <div className="flex flex-col items-end justify-center gap-0.5 text-right">
+            <span className="text-muted-foreground text-[11px] uppercase tracking-wide">
+              Gain at TP
+            </span>
+            <span className="text-success inline-flex items-center gap-1 font-mono text-xl font-semibold tabular-nums">
+              <TrendingUp className="size-4" />
+              {winPct != null ? formatPercent(winPct) : "—"}
+            </span>
+          </div>
+        </div>
+
         {/* Targets */}
-        <div className="grid grid-cols-2 gap-3 rounded-lg border bg-background/40 p-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg border bg-background/40 p-3">
           <div className="flex items-center gap-2">
             <Target className="text-success size-4 shrink-0" />
             <Stat

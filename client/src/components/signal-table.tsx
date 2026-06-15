@@ -1,13 +1,25 @@
-import { ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react"
+import { useMemo } from "react"
+import {
+  ArrowDown,
+  ArrowDownRight,
+  ArrowUp,
+  ArrowUpRight,
+  ChevronsUpDown,
+  ExternalLink,
+} from "lucide-react"
 
 import type { Signal } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import {
   formatDate,
   formatNumber,
+  formatPercent,
   formatPrice,
   riskReward,
   tradingViewUrl,
+  winPercent,
 } from "@/lib/format"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -18,32 +30,151 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+type SortKey =
+  | "symbol"
+  | "index"
+  | "type"
+  | "date"
+  | "price"
+  | "win"
+  | "top"
+  | "avg"
+  | "bottom"
+  | "atr"
+  | "trailingStop"
+  | "takeProfit"
+  | "stopLoss"
+  | "rr"
+  | "barIndex"
+  | "tsReached"
+
+type SortDir = "asc" | "desc"
+type Sort = { key: SortKey; dir: SortDir } | null
+
+// Comparable value per column. Nulls collapse to -Infinity so they sort last
+// when descending (the common case for "best first").
+const accessors: Record<SortKey, (s: Signal) => number | string> = {
+  symbol: (s) => s.symbol,
+  index: (s) => s.index.join(","),
+  type: (s) => s.type,
+  date: (s) => new Date(s.date).getTime(),
+  price: (s) => s.price ?? -Infinity,
+  win: (s) => winPercent(s.price ?? s.avg, s.takeProfit) ?? -Infinity,
+  top: (s) => s.top,
+  avg: (s) => s.avg,
+  bottom: (s) => s.bottom,
+  atr: (s) => s.atr,
+  trailingStop: (s) => s.trailingStop,
+  takeProfit: (s) => s.takeProfit,
+  stopLoss: (s) => s.stopLoss,
+  rr: (s) => riskReward(s.avg, s.takeProfit, s.stopLoss) ?? -Infinity,
+  barIndex: (s) => s.barIndex,
+  tsReached: (s) => (s.tsReached ? 1 : 0),
+}
+
+const columns: { key: SortKey; label: string; align?: "right" }[] = [
+  { key: "symbol", label: "Symbol" },
+  { key: "index", label: "Index" },
+  { key: "type", label: "Side" },
+  { key: "date", label: "Date" },
+  { key: "price", label: "Price", align: "right" },
+  { key: "win", label: "Gain @ TP", align: "right" },
+  { key: "top", label: "Top", align: "right" },
+  { key: "avg", label: "Avg", align: "right" },
+  { key: "bottom", label: "Bottom", align: "right" },
+  { key: "atr", label: "ATR", align: "right" },
+  { key: "trailingStop", label: "Trailing", align: "right" },
+  { key: "takeProfit", label: "TP", align: "right" },
+  { key: "stopLoss", label: "SL", align: "right" },
+  { key: "rr", label: "R/R", align: "right" },
+  { key: "barIndex", label: "Bar", align: "right" },
+  { key: "tsReached", label: "TS Hit" },
+]
+
+// Text columns read better A→Z on first click; numbers best-first (desc).
+const stringKeys: SortKey[] = ["symbol", "index", "type"]
+
+function SortHeader({
+  col,
+  sort,
+  onSort,
+}: {
+  col: (typeof columns)[number]
+  sort: Sort
+  onSort: (key: SortKey) => void
+}) {
+  const active = sort?.key === col.key
+  return (
+    <TableHead className={col.align === "right" ? "text-right" : undefined}>
+      <button
+        type="button"
+        onClick={() => onSort(col.key)}
+        className={cn(
+          "hover:text-foreground inline-flex cursor-pointer select-none items-center gap-1 transition-colors",
+          active && "text-foreground font-semibold"
+        )}
+      >
+        {col.label}
+        {active ? (
+          sort?.dir === "asc" ? (
+            <ArrowUp className="size-3.5" />
+          ) : (
+            <ArrowDown className="size-3.5" />
+          )
+        ) : (
+          <ChevronsUpDown className="size-3.5 opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  )
+}
+
 export function SignalTable({ signals }: { signals: Signal[] }) {
+  const [sort, setSort] = useLocalStorage<Sort>("fvg:tableSort", null)
+
+  function onSort(key: SortKey) {
+    setSort((prev) =>
+      prev && prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: stringKeys.includes(key) ? "asc" : "desc" }
+    )
+  }
+
+  const sorted = useMemo(() => {
+    if (!sort) return signals
+    const acc = accessors[sort.key]
+    return [...signals].sort((a, b) => {
+      const av = acc(a)
+      const bv = acc(b)
+      if (typeof av === "string" && typeof bv === "string") {
+        return sort.dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av)
+      }
+      return sort.dir === "asc"
+        ? (av as number) - (bv as number)
+        : (bv as number) - (av as number)
+    })
+  }, [signals, sort])
+
   return (
     <div className="rounded-xl border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Symbol</TableHead>
-            <TableHead>Index</TableHead>
-            <TableHead>Side</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Top</TableHead>
-            <TableHead className="text-right">Avg</TableHead>
-            <TableHead className="text-right">Bottom</TableHead>
-            <TableHead className="text-right">ATR</TableHead>
-            <TableHead className="text-right">Trailing</TableHead>
-            <TableHead className="text-right">TP</TableHead>
-            <TableHead className="text-right">SL</TableHead>
-            <TableHead className="text-right">R/R</TableHead>
-            <TableHead className="text-right">Bar</TableHead>
-            <TableHead>TS Hit</TableHead>
+            {columns.map((col) => (
+              <SortHeader
+                key={col.key}
+                col={col}
+                sort={sort}
+                onSort={onSort}
+              />
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {signals.map((s) => {
+          {sorted.map((s) => {
             const isBull = s.type === "bull"
             const rr = riskReward(s.avg, s.takeProfit, s.stopLoss)
+            const winPct = winPercent(s.price ?? s.avg, s.takeProfit)
             return (
               <TableRow key={s.symbol}>
                 <TableCell className="font-semibold">
@@ -82,6 +213,12 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(s.date)}
+                </TableCell>
+                <TableCell className="text-right font-mono font-semibold tabular-nums">
+                  {s.price != null ? formatPrice(s.price) : "—"}
+                </TableCell>
+                <TableCell className="text-success text-right font-mono tabular-nums">
+                  {winPct != null ? formatPercent(winPct) : "—"}
                 </TableCell>
                 <TableCell className="text-right font-mono tabular-nums">
                   {formatPrice(s.top)}

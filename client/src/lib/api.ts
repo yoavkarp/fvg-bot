@@ -20,6 +20,8 @@ export interface Signal {
   tsReached: boolean
   takeProfit: number
   stopLoss: number
+  // Live current price from Polygon (null if it couldn't be resolved)
+  price: number | null
 }
 
 export interface ScanResponse {

@@ -1,3 +1,21 @@
+export function formatPercent(fraction: number, digits = 1): string {
+  if (fraction == null || Number.isNaN(fraction)) return "—"
+  return `${(fraction * 100).toFixed(digits)}%`
+}
+
+/**
+ * Percentage the trade gains if it reaches take-profit, measured against the
+ * take-profit price (per spec: tp=1, entry=0.5 → 50%). `entry` is the live
+ * price you'd enter at now. Returns a fraction (0.5 = 50%) or null.
+ */
+export function winPercent(
+  entry: number | null | undefined,
+  takeProfit: number
+): number | null {
+  if (entry == null || !Number.isFinite(entry) || !takeProfit) return null
+  return Math.abs(takeProfit - entry) / takeProfit
+}
+
 /** TradingView chart for a symbol on the 4-hour (240m) interval. */
 export function tradingViewUrl(symbol: string): string {
   return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(

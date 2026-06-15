@@ -3,6 +3,7 @@ import { db } from '../db/db.service.js';
 import { Ticker } from '../symbols/symbols.interfaces.js';
 import { FVGSignal } from '../fvg/fvg.interfaces.js';
 import { scan } from '../../functions/scan.js';
+import { quotesService } from '../quotes/quotes.service.js';
 import cors from 'cors';
 
 export function server() {
@@ -15,13 +16,19 @@ export function server() {
         origin: '*', // or '*' for dev only
     }));
 
-    apiRoute.get('/list', (_, res) => {
+    apiRoute.get('/list', async (_, res) => {
         const dbval = db.read();
-        const retval = Object.keys(dbval).reduce<Array<FVGSignal & Ticker>>((prev, cur) => {
-            const curVal = dbval[cur];
-            prev.push(curVal);
-            return prev;
-        }, []);
+        const signals = Object.values(dbval) as Array<FVGSignal & Ticker>;
+
+        // Enrich each signal with its current price from Polygon (one batched
+        // snapshot request for all symbols). Falls back to null per-symbol.
+        const prices = await quotesService.getCurrentPrices(signals.map((s) => s.symbol));
+        console.log(prices);
+        const retval = signals.map((signal) => ({
+            ...signal,
+            price: prices[signal.symbol] ?? null,
+        }));
+
         res.json(retval);
     });
 
