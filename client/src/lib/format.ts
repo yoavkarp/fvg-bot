@@ -1,3 +1,10 @@
+/** TradingView chart for a symbol on the 4-hour (240m) interval. */
+export function tradingViewUrl(symbol: string): string {
+  return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(
+    symbol
+  )}&interval=240`
+}
+
 export function formatPrice(value: number): string {
   if (value == null || Number.isNaN(value)) return "—"
   return value.toLocaleString(undefined, {

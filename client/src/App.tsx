@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { useScan, useSignals } from "@/hooks/use-signals"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { relativeTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -45,7 +46,7 @@ function StatPill({
 }
 
 export default function App() {
-  const [view, setView] = useState<View>("grid")
+  const [view, setView] = useLocalStorage<View>("fvg:view", "grid")
   const [scanning, setScanning] = useState(false)
 
   const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } =

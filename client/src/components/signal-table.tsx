@@ -1,7 +1,13 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react"
+import { ArrowDownRight, ArrowUpRight, ExternalLink } from "lucide-react"
 
 import type { Signal } from "@/lib/api"
-import { formatDate, formatNumber, formatPrice, riskReward } from "@/lib/format"
+import {
+  formatDate,
+  formatNumber,
+  formatPrice,
+  riskReward,
+  tradingViewUrl,
+} from "@/lib/format"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -40,7 +46,18 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
             const rr = riskReward(s.avg, s.takeProfit, s.stopLoss)
             return (
               <TableRow key={s.symbol}>
-                <TableCell className="font-semibold">{s.symbol}</TableCell>
+                <TableCell className="font-semibold">
+                  <a
+                    href={tradingViewUrl(s.symbol)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Open ${s.symbol} on TradingView (4h)`}
+                    className="group inline-flex items-center gap-1.5 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                  >
+                    {s.symbol}
+                    <ExternalLink className="text-muted-foreground size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+                  </a>
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {s.index.map((i) => (

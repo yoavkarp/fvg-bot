@@ -1,8 +1,21 @@
-import { ArrowDownRight, ArrowUpRight, Target, Shield, Activity } from "lucide-react"
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Target,
+  Shield,
+  Activity,
+  ExternalLink,
+} from "lucide-react"
 
 import type { Signal } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { formatDate, formatNumber, formatPrice, riskReward } from "@/lib/format"
+import {
+  formatDate,
+  formatNumber,
+  formatPrice,
+  riskReward,
+  tradingViewUrl,
+} from "@/lib/format"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -45,9 +58,16 @@ export function SignalCard({ signal }: { signal: Signal }) {
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold tracking-tight">
+            <a
+              href={tradingViewUrl(signal.symbol)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Open ${signal.symbol} on TradingView (4h)`}
+              className="group inline-flex items-center gap-1.5 text-lg font-semibold tracking-tight underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+            >
               {signal.symbol}
-            </span>
+              <ExternalLink className="text-muted-foreground size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+            </a>
             {signal.index.map((idx) => (
               <Badge key={idx} variant="outline" className="uppercase">
                 {idx}
