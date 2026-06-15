@@ -1,0 +1,1 @@
+export const TICKER_RE = /^[A-Z]{1,5}(?:\.[A-Z]{1,2})?$/;

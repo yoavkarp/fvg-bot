@@ -1,0 +1,30 @@
+services:
+  fvg-client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  fvg-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    expose:
+      - "3001"
+    volumes:
+      - ./server/db.json:/app/db.json
+    restart: unless-stopped
+
+  fvg-nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - fvg-client
+      - fvg-server
+    restart: unless-stopped
