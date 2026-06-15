@@ -1,122 +1,274 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useMemo, useState } from "react"
+import {
+  AlertTriangle,
+  LayoutGrid,
+  Radar,
+  RefreshCw,
+  Table as TableIcon,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react"
 
-function App() {
-  const [count, setCount] = useState(0)
+import { useScan, useSignals } from "@/hooks/use-signals"
+import { relativeTime } from "@/lib/format"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { SignalCard } from "@/components/signal-card"
+import { SignalTable } from "@/components/signal-table"
 
+type View = "grid" | "table"
+
+function StatPill({
+  icon,
+  label,
+  value,
+  className,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: React.ReactNode
+  className?: string
+}) {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started 3</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="bg-card flex items-center gap-3 rounded-lg border px-4 py-2.5">
+      <div className={cn("text-muted-foreground", className)}>{icon}</div>
+      <div className="flex flex-col leading-tight">
+        <span className="text-muted-foreground text-[11px] uppercase tracking-wide">
+          {label}
+        </span>
+        <span className="text-lg font-semibold tabular-nums">{value}</span>
+      </div>
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  const [view, setView] = useState<View>("grid")
+  const [scanning, setScanning] = useState(false)
+
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } =
+    useSignals({ refetchInterval: scanning ? 5000 : false })
+  const scan = useScan()
+
+  // The server scans in the background and gives no completion signal, so poll
+  // for a bounded window after kicking off a scan, then stop.
+  useEffect(() => {
+    if (!scanning) return
+    const timer = setTimeout(() => setScanning(false), 120_000)
+    return () => clearTimeout(timer)
+  }, [scanning])
+
+  async function handleScan() {
+    try {
+      await scan.mutateAsync()
+      setScanning(true)
+    } catch {
+      // If the server is already scanning it returns 400 — still poll for it.
+      setScanning(true)
+    }
+  }
+
+  const signals = data ?? []
+  const stats = useMemo(() => {
+    const longs = signals.filter((s) => s.type === "bull").length
+    const shorts = signals.filter((s) => s.type === "bear").length
+    return { total: signals.length, longs, shorts }
+  }, [signals])
+
+  const sorted = useMemo(
+    () =>
+      [...signals].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    [signals]
+  )
+
+  return (
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <header className="flex flex-col gap-6 border-b pb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 ring-primary/20 flex size-11 items-center justify-center rounded-xl ring-1">
+                <Radar className="text-primary size-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  FVG Signal Scanner
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  Fair Value Gap signals across S&amp;P 500 &amp; NASDAQ 100
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                <RefreshCw
+                  className={cn("size-4", isFetching && "animate-spin")}
+                />
+                Refresh
+              </Button>
+              <Button onClick={handleScan} disabled={scanning || scan.isPending}>
+                <Radar className={cn("size-4", scanning && "animate-pulse")} />
+                {scanning ? "Scanning…" : "Scan market"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats + controls */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-3">
+              <StatPill
+                icon={<Radar className="size-5" />}
+                label="Signals"
+                value={isLoading ? "—" : stats.total}
+              />
+              <StatPill
+                icon={<TrendingUp className="size-5" />}
+                label="Long"
+                value={isLoading ? "—" : stats.longs}
+                className="text-success"
+              />
+              <StatPill
+                icon={<TrendingDown className="size-5" />}
+                label="Short"
+                value={isLoading ? "—" : stats.shorts}
+                className="text-destructive"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              {dataUpdatedAt > 0 && (
+                <span className="text-muted-foreground text-xs">
+                  Updated {relativeTime(dataUpdatedAt)}
+                </span>
+              )}
+              <div className="bg-card flex items-center rounded-lg border p-1">
+                <Button
+                  variant={view === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setView("grid")}
+                >
+                  <LayoutGrid className="size-4" />
+                  Cards
+                </Button>
+                <Button
+                  variant={view === "table" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setView("table")}
+                >
+                  <TableIcon className="size-4" />
+                  Table
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {scanning && (
+            <div className="bg-primary/5 border-primary/20 text-muted-foreground flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm">
+              <Radar className="text-primary size-4 animate-pulse" />
+              Scanning the market in the background — results refresh
+              automatically as they come in.
+            </div>
+          )}
+        </header>
+
+        {/* Body */}
+        <main className="py-8">
+          {isLoading ? (
+            <LoadingState />
+          ) : isError ? (
+            <ErrorState
+              message={(error as Error)?.message}
+              onRetry={() => refetch()}
+            />
+          ) : sorted.length === 0 ? (
+            <EmptyState onScan={handleScan} scanning={scanning} />
+          ) : view === "grid" ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {sorted.map((s) => (
+                <SignalCard key={s.symbol} signal={s} />
+              ))}
+            </div>
+          ) : (
+            <SignalTable signals={sorted} />
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-72 w-full rounded-xl" />
+      ))}
+    </div>
+  )
+}
+
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message?: string
+  onRetry: () => void
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed py-20 text-center">
+      <div className="bg-destructive/10 flex size-12 items-center justify-center rounded-full">
+        <AlertTriangle className="text-destructive size-6" />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold">Couldn’t load signals</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          {message ?? "The server didn’t respond. Is it running on :3001?"}
+        </p>
+      </div>
+      <Button variant="outline" onClick={onRetry}>
+        <RefreshCw className="size-4" />
+        Try again
+      </Button>
+    </div>
+  )
+}
+
+function EmptyState({
+  onScan,
+  scanning,
+}: {
+  onScan: () => void
+  scanning: boolean
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed py-20 text-center">
+      <div className="bg-primary/10 flex size-12 items-center justify-center rounded-full">
+        <Radar className="text-primary size-6" />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold">No signals yet</h2>
+        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+          Run a market scan to detect Fair Value Gap signals across the S&amp;P
+          500 and NASDAQ 100.
+        </p>
+      </div>
+      <Button onClick={onScan} disabled={scanning}>
+        <Radar className={cn("size-4", scanning && "animate-pulse")} />
+        {scanning ? "Scanning…" : "Scan market"}
+      </Button>
+      <Badge variant="secondary" className="font-normal">
+        A full scan can take a couple of minutes
+      </Badge>
+    </div>
+  )
+}

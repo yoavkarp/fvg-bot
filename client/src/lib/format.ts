@@ -1,0 +1,55 @@
+export function formatPrice(value: number): string {
+  if (value == null || Number.isNaN(value)) return "—"
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+export function formatNumber(value: number, digits = 4): string {
+  if (value == null || Number.isNaN(value)) return "—"
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: digits,
+  })
+}
+
+export function formatDate(value: string): string {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+export function relativeTime(value: string | number | Date): string {
+  const d = new Date(value)
+  const diffMs = Date.now() - d.getTime()
+  const sec = Math.round(diffMs / 1000)
+  if (sec < 60) return "just now"
+  const min = Math.round(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.round(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.round(hr / 24)
+  return `${day}d ago`
+}
+
+/**
+ * Risk/reward ratio for the signal: distance to take-profit over distance to
+ * stop-loss, measured from the gap average (entry reference).
+ */
+export function riskReward(
+  avg: number,
+  takeProfit: number,
+  stopLoss: number
+): number | null {
+  const reward = Math.abs(takeProfit - avg)
+  const risk = Math.abs(avg - stopLoss)
+  if (!risk) return null
+  return reward / risk
+}
