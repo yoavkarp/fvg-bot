@@ -1,11 +1,11 @@
 import { config as dotenvConfig } from "dotenv";
 import { transformEnvToNumber } from "./utils/env.utils.js";
 
-dotenvConfig();
+dotenvConfig({ quiet: true });
 
 type Config = {
-    FVG_FILTER_WIDTH: number,
-    FVG_ATR_PERIOD: number,
+    FVG_FILTER_WIDTH: number;
+    FVG_ATR_PERIOD: number;
     FVG_RESET_TS: 'Inverse Signals' | 'Every Signals';
     FVG_MULTIPLIER_TS: number;
     FVG_MULTIPLIER_TP: number;
