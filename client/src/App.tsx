@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import {
   AlertTriangle,
   LayoutGrid,
@@ -9,7 +9,7 @@ import {
   TrendingUp,
 } from "lucide-react"
 
-import { useScan, useSignals } from "@/hooks/use-signals"
+import { useScan, useSignals, useStatus } from "@/hooks/use-signals"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { relativeTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -47,27 +47,30 @@ function StatPill({
 
 export default function App() {
   const [view, setView] = useLocalStorage<View>("fvg:view", "grid")
-  const [scanning, setScanning] = useState(false)
+
+  const scan = useScan()
+  // Server scan status, polled every 5s — the source of truth for "scanning".
+  const status = useStatus()
+  const scanning = (status.data?.is_scanning ?? false) || scan.isPending
 
   const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } =
-    useSignals({ refetchInterval: scanning ? 5000 : false })
-  const scan = useScan()
+    useSignals()
 
-  // The server scans in the background and gives no completion signal, so poll
-  // for a bounded window after kicking off a scan, then stop.
+  // When a scan finishes (status flips true -> false), pull the final list.
+  const prevScanning = useRef(scanning)
   useEffect(() => {
-    if (!scanning) return
-    const timer = setTimeout(() => setScanning(false), 120_000)
-    return () => clearTimeout(timer)
-  }, [scanning])
+    if (prevScanning.current && !scanning) refetch()
+    prevScanning.current = scanning
+  }, [scanning, refetch])
 
   async function handleScan() {
     try {
       await scan.mutateAsync()
-      setScanning(true)
     } catch {
-      // If the server is already scanning it returns 400 — still poll for it.
-      setScanning(true)
+      // Already scanning (400) — the status poll will reflect it regardless.
+    } finally {
+      // Reflect the new state immediately instead of waiting up to 5s.
+      status.refetch()
     }
   }
 

@@ -32,6 +32,10 @@ export function server() {
         res.json(retval);
     });
 
+    apiRoute.get('/status', (_, res) => {
+        res.json({ is_scanning })
+    })
+
     apiRoute.get('/scan', (_, res) => {
         if (is_scanning) {
             return res.status(400).json({ success: false, message: 'already-scanning' })

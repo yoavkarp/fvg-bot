@@ -29,6 +29,10 @@ export interface ScanResponse {
   message?: string
 }
 
+export interface StatusResponse {
+  is_scanning: boolean
+}
+
 // Behind nginx the API is mounted at /api; in dev, vite proxies /api -> :3001.
 // Override with VITE_API_URL if the server lives elsewhere.
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api"
@@ -56,4 +60,8 @@ export function getSignals(): Promise<Signal[]> {
 
 export function startScan(): Promise<ScanResponse> {
   return request<ScanResponse>("/scan")
+}
+
+export function getStatus(): Promise<StatusResponse> {
+  return request<StatusResponse>("/status")
 }

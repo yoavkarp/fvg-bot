@@ -1,14 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { getSignals, startScan } from "@/lib/api"
+import { getSignals, getStatus, startScan } from "@/lib/api"
 
 export const signalsKey = ["signals"] as const
+export const statusKey = ["status"] as const
 
 export function useSignals(options?: { refetchInterval?: number | false }) {
   return useQuery({
     queryKey: signalsKey,
     queryFn: getSignals,
     refetchInterval: options?.refetchInterval ?? false,
+  })
+}
+
+/** Polls the server's scan status every 5s so the UI knows when a scan runs. */
+export function useStatus() {
+  return useQuery({
+    queryKey: statusKey,
+    queryFn: getStatus,
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
   })
 }
 
