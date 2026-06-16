@@ -15,6 +15,7 @@ import {
   formatNumber,
   formatPercent,
   formatPrice,
+  indexLabel,
   riskReward,
   tradingViewUrl,
   winPercent,
@@ -75,8 +76,8 @@ export function SignalCard({ signal }: { signal: Signal }) {
               <ExternalLink className="text-muted-foreground size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
             </a>
             {signal.index.map((idx) => (
-              <Badge key={idx} variant="outline" className="uppercase">
-                {idx}
+              <Badge key={idx} variant="outline">
+                {indexLabel(idx)}
               </Badge>
             ))}
           </div>
@@ -110,7 +111,7 @@ export function SignalCard({ signal }: { signal: Signal }) {
           </div>
           <div className="flex flex-col items-end justify-center gap-0.5 text-right">
             <span className="text-muted-foreground text-[11px] uppercase tracking-wide">
-              Gain at TP
+              Profit
             </span>
             <span className="text-success inline-flex items-center gap-1 font-mono text-xl font-semibold tabular-nums">
               <TrendingUp className="size-4" />

@@ -39,16 +39,24 @@ export function formatNumber(value: number, digits = 4): string {
   })
 }
 
+/** en-GB style, 2-digit year, 24h — e.g. "12.06.26 20:30". */
 export function formatDate(value: string): string {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return value
-  return d.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const day = pad(d.getDate())
+  const month = pad(d.getMonth() + 1)
+  const year = pad(d.getFullYear() % 100)
+  return `${day}.${month}.${year} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const INDEX_LABELS: Record<string, string> = {
+  nasdaq: "NAS",
+  sp500: "S&P",
+}
+
+export function indexLabel(idx: string): string {
+  return INDEX_LABELS[idx] ?? idx.toUpperCase()
 }
 
 export function relativeTime(value: string | number | Date): string {

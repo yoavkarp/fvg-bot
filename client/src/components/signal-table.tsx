@@ -15,7 +15,7 @@ import {
   formatNumber,
   formatPercent,
   formatPrice,
-  riskReward,
+  indexLabel,
   tradingViewUrl,
   winPercent,
 } from "@/lib/format"
@@ -41,12 +41,8 @@ type SortKey =
   | "avg"
   | "bottom"
   | "atr"
-  | "trailingStop"
   | "takeProfit"
   | "stopLoss"
-  | "rr"
-  | "barIndex"
-  | "tsReached"
 
 type SortDir = "asc" | "desc"
 type Sort = { key: SortKey; dir: SortDir } | null
@@ -64,12 +60,8 @@ const accessors: Record<SortKey, (s: Signal) => number | string> = {
   avg: (s) => s.avg,
   bottom: (s) => s.bottom,
   atr: (s) => s.atr,
-  trailingStop: (s) => s.trailingStop,
   takeProfit: (s) => s.takeProfit,
   stopLoss: (s) => s.stopLoss,
-  rr: (s) => riskReward(s.avg, s.takeProfit, s.stopLoss) ?? -Infinity,
-  barIndex: (s) => s.barIndex,
-  tsReached: (s) => (s.tsReached ? 1 : 0),
 }
 
 const columns: { key: SortKey; label: string; align?: "right" }[] = [
@@ -78,17 +70,13 @@ const columns: { key: SortKey; label: string; align?: "right" }[] = [
   { key: "type", label: "Side" },
   { key: "date", label: "Date" },
   { key: "price", label: "Price", align: "right" },
-  { key: "win", label: "Gain @ TP", align: "right" },
+  { key: "win", label: "Profit", align: "right" },
   { key: "top", label: "Top", align: "right" },
   { key: "avg", label: "Avg", align: "right" },
   { key: "bottom", label: "Bottom", align: "right" },
   { key: "atr", label: "ATR", align: "right" },
-  { key: "trailingStop", label: "Trailing", align: "right" },
   { key: "takeProfit", label: "TP", align: "right" },
   { key: "stopLoss", label: "SL", align: "right" },
-  { key: "rr", label: "R/R", align: "right" },
-  { key: "barIndex", label: "Bar", align: "right" },
-  { key: "tsReached", label: "TS Hit" },
 ]
 
 // Text columns read better A→Z on first click; numbers best-first (desc).
@@ -143,6 +131,7 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
   const sorted = useMemo(() => {
     if (!sort) return signals
     const acc = accessors[sort.key]
+    if (!acc) return signals // stale/removed column from localStorage
     return [...signals].sort((a, b) => {
       const av = acc(a)
       const bv = acc(b)
@@ -173,7 +162,6 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
         <TableBody>
           {sorted.map((s) => {
             const isBull = s.type === "bull"
-            const rr = riskReward(s.avg, s.takeProfit, s.stopLoss)
             const winPct = winPercent(s.price ?? s.avg, s.takeProfit)
             return (
               <TableRow key={s.symbol}>
@@ -192,8 +180,8 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
                 <TableCell>
                   <div className="flex gap-1">
                     {s.index.map((i) => (
-                      <Badge key={i} variant="outline" className="uppercase">
-                        {i}
+                      <Badge key={i} variant="outline">
+                        {indexLabel(i)}
                       </Badge>
                     ))}
                   </div>
@@ -232,25 +220,11 @@ export function SignalTable({ signals }: { signals: Signal[] }) {
                 <TableCell className="text-right font-mono tabular-nums">
                   {formatNumber(s.atr)}
                 </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatPrice(s.trailingStop)}
-                </TableCell>
                 <TableCell className="text-success text-right font-mono tabular-nums">
                   {formatPrice(s.takeProfit)}
                 </TableCell>
                 <TableCell className="text-destructive text-right font-mono tabular-nums">
                   {formatPrice(s.stopLoss)}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {rr != null ? `${rr.toFixed(2)}R` : "—"}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {s.barIndex}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={s.tsReached ? "success" : "secondary"}>
-                    {s.tsReached ? "Yes" : "No"}
-                  </Badge>
                 </TableCell>
               </TableRow>
             )
