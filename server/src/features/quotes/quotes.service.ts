@@ -28,17 +28,7 @@ class QuotesService {
     async getCurrentPrices(symbols: string[]): Promise<Record<string, number | null>> {
         const prices: Record<string, number | null> = {};
         for (const s of symbols) prices[s] = null;
-
-        if (symbols.length === 0) return prices;
-        const from = new Date(Date.now() - config.CHARTS_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
-        const to = new Date().toISOString().split("T")[0];
-
-
         try {
-            const response = await Promise.all(symbols.map((s) => client.getStocksAggregates(s, 1, GetStocksAggregatesTimespanEnum.Minute, from, to, true, GetStocksAggregatesSortEnum.Desc, 1)))
-            for (const t of response ?? []) {
-                if (t.ticker) prices[t.ticker] = t.results?.at(-1)?.c ?? null;
-            }
         } catch (err) {
             console.error("[quotes] failed to fetch snapshot prices", err);
         }
