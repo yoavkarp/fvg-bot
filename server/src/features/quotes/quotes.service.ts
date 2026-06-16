@@ -1,5 +1,6 @@
+import { config } from "../../config.js";
 import { client } from "../charts/client.js";
-import { GetStocksSnapshotTickers200ResponseAllOfTickersInner } from "@polygon.io/client-js";
+import { GetStocksAggregatesSortEnum, GetStocksAggregatesTimespanEnum, GetStocksSnapshotTickers200ResponseAllOfTickersInner } from "@polygon.io/client-js";
 
 type SnapshotTicker = GetStocksSnapshotTickers200ResponseAllOfTickersInner;
 
@@ -29,11 +30,14 @@ class QuotesService {
         for (const s of symbols) prices[s] = null;
 
         if (symbols.length === 0) return prices;
+        const from = new Date(Date.now() - config.CHARTS_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+        const to = new Date().toISOString().split("T")[0];
+
 
         try {
-            const res = await client.getStocksSnapshotTickers(symbols);
-            for (const t of res.tickers ?? []) {
-                if (t.ticker) prices[t.ticker] = priceFromSnapshot(t);
+            const response = await Promise.all(symbols.map((s) => client.getStocksAggregates(s, 1, GetStocksAggregatesTimespanEnum.Minute, from, to, true, GetStocksAggregatesSortEnum.Desc, 1)))
+            for (const t of response ?? []) {
+                if (t.ticker) prices[t.ticker] = t.results?.at(-1)?.c ?? null;
             }
         } catch (err) {
             console.error("[quotes] failed to fetch snapshot prices", err);
