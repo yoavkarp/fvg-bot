@@ -4,15 +4,9 @@ import { Ticker } from "../symbols/symbols.interfaces.js";
 import path from "path";
 import { cwd } from "process";
 
-async function fileExists(path: string) {
-    return existsSync(path);
-}
-
 async function createIfNotExists(path: string, content = "{}") {
     try {
-        const fileHandle = openSync(path, "wx");
-        writeFileSync(fileHandle, content, 'utf-8');
-        closeSync(fileHandle);
+        writeFileSync(path, content, 'utf-8');
         console.log("File created");
     } catch (err: any) {
         if (err.code === "EEXIST") {
