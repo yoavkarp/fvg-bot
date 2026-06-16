@@ -1,39 +1,5 @@
 import { Chart } from "./charts.interfaces.js";
 
-export function m30toh4(chart: Chart[]): Chart[] {
-
-    const c: Chart[] = [];
-
-    for (let i = 0; i < chart.length; i += 13) {
-        const first4 = chart.slice(i, i + 8);
-        const last4 = chart.slice(i + 8, i + 13);
-
-        if (!first4 || !last4) {
-            return [];
-        }
-
-        const first: Chart = {
-            o: first4.at(0)?.o!,
-            c: first4.at(-1)?.c!,
-            h: Math.max(...first4.map((f) => f.h)),
-            l: Math.min(...first4.map((f) => f.l)),
-            t: first4.at(0)?.t || 0,
-        }
-
-        const last: Chart = {
-            o: last4.at(0)?.o!,
-            c: last4.at(-1)?.c!,
-            h: Math.max(...last4.map((f) => f.h)),
-            l: Math.min(...last4.map((f) => f.l)),
-            t: last4.at(0)?.t || 0,
-        }
-
-        c.push(first, last);
-    }
-
-    return c;
-}
-
 export const toNyTimes = (c: Chart) => {
     const nyDate = new Date(c.t);
     const nyTimeString = nyDate.toLocaleTimeString("en-US", {
@@ -74,4 +40,30 @@ export const isPreMarket = (c: Chart) => {
         totalMinutes >= 4 * 60 &&
         totalMinutes < 9 * 60 + 30;
     return result;
+}
+
+export const INTERVALS = ['30m', '4h', '1h', '1d'] as const;
+export type Interval = typeof INTERVALS[number];
+
+export const INTERVALS_POSTFIX = ['m', 'h', 's', 'd', 'wk'] as const;
+export type IntervalPostfix = typeof INTERVALS_POSTFIX[number];
+
+export const transformIntervalToMinutesMap: Record<IntervalPostfix, number> = {
+    'm': 1,
+    'h': 60,
+    's': 1 / 60,
+    'd': 60 * 24,
+    'wk': 7 * 60 * 24
+}
+
+export const transformIntervalToMinutes = (interval: Interval) => {
+    const match = interval.match(/^(\d+)(m|h|s|d|wk)$/);
+
+    if (!match) {
+        throw new Error(`Invalid interval: ${interval}`);
+    }
+
+    const [, amount, unit] = match;
+
+    return Number(amount) * transformIntervalToMinutesMap[unit as IntervalPostfix];
 }

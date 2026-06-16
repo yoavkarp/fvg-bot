@@ -1,16 +1,25 @@
 import { config } from "../../config.js";
 import { Chart } from "./charts.interfaces.js";
-import { isRegularMarket, m30toh4 } from "./charts.utils.js";
 import { client } from "./client.js";
 import { GetStocksAggregates200Response, GetStocksAggregatesTimespanEnum } from "@polygon.io/client-js";
+import { refactorChart } from "./refactor_chart.js";
+import { Interval, isRegularMarket, transformIntervalToMinutes } from "./charts.utils.js";
 
 class ChartsService {
-    async get4hChart(symbol: string, periodDays: number = config.CHARTS_PERIOD_DAYS): Promise<Array<Chart>> {
+    async chart(symbol: string, interval: Interval, periodDays: number = config.CHARTS_PERIOD_DAYS): Promise<Array<Chart>> {
+
+        let final_interval = interval;
+        const market_minutes = 6.5 * 60;
+        if (market_minutes % transformIntervalToMinutes(interval) > 0) {
+            final_interval = '30m';
+        }
+
+        const mins_interval = transformIntervalToMinutes(final_interval);
 
         const from = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
         const charts: Array<Chart> = [];
         const to = new Date().toISOString().split("T")[0];
-        const curr = await client.getStocksAggregates(symbol, 30, GetStocksAggregatesTimespanEnum.Minute, from, to, false);
+        const curr = await client.getStocksAggregates(symbol, mins_interval, GetStocksAggregatesTimespanEnum.Minute, from, to, false);
         charts.push(...(curr.results ?? []));
         let next_url = curr.next_url;
 
@@ -21,7 +30,11 @@ class ChartsService {
             next_url = jsres.next_url;
         }
 
-        return m30toh4(charts.filter(isRegularMarket)) ?? [];
+        if (final_interval !== interval) {
+            return refactorChart(charts, '30m', interval);
+        }
+
+        return charts.filter(isRegularMarket);
     }
 }
 
