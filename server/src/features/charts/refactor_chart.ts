@@ -10,8 +10,6 @@ export function refactorChart(input: Chart[], from: Interval, to: Interval) {
     const market_minutes_day = 6.5 * 60;
     const original_bars_per_day = market_minutes_day / from_mins;
 
-    console.log({ market_minutes_day, original_bars_per_day })
-
     const input_market_hours = input.filter(isRegularMarket).reduce<Chart[][]>((prev, cur) => {
         if (!prev.length || prev.at(-1)?.length === original_bars_per_day) {
             prev.push([cur]);
@@ -40,8 +38,6 @@ export function refactorChart(input: Chart[], from: Interval, to: Interval) {
         }
         return cur;
     }).flat()
-
-    console.log(result);
 
     return result;
 }
