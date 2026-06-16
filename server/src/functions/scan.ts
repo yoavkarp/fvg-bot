@@ -28,7 +28,7 @@ export async function scan(options: ScanOptions = {}) {
     }, [[]]);
 
     for (const b of batch_tickers) {
-        const res = await Promise.all(b.map((t) => chartsService.get4hChart(t.symbol).then((c) => {
+        const res = await Promise.all(b.map((t) => chartsService.chart(t.symbol, '4h').then((c) => {
             const signals = fvg(c);
             const last_signal = signals.at(-1);
             if (!last_signal) {

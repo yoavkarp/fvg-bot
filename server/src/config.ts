@@ -15,6 +15,7 @@ type Config = {
     POLYGON_IO_API_KEY?: string;
     // Charts
     CHARTS_PERIOD_DAYS: number;
+    SMA_PERIOD: number;
 }
 
 export const config: Config = {
@@ -29,5 +30,6 @@ export const config: Config = {
     // Polygon.io
     POLYGON_IO_API_KEY: process.env.POLYGON_IO_API_KEY,
     // Charts
-    CHARTS_PERIOD_DAYS: transformEnvToNumber(process.env.CHARTS_PERIOD_DAYS) ?? 17
+    CHARTS_PERIOD_DAYS: transformEnvToNumber(process.env.CHARTS_PERIOD_DAYS) ?? 17,
+    SMA_PERIOD: transformEnvToNumber(process.env.SMA_PERIOD) ?? 120
 }

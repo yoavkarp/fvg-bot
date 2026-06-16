@@ -23,7 +23,7 @@ export async function tune(options: TuneOptions): Promise<TuneResult[]> {
         const batch = tickers.slice(i, i + concurrent);
         await Promise.all(batch.map(async (t) => {
             try {
-                const chart = await chartsService.get4hChart(t.symbol, periodDays);
+                const chart = await chartsService.chart(t.symbol, '4h', periodDays);
                 if (chart.length > 0) {
                     charts.set(t.symbol, chart);
                 }
