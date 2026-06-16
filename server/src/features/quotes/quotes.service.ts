@@ -1,6 +1,4 @@
-import { config } from "../../config.js";
-import { client } from "../charts/client.js";
-import { GetStocksAggregatesSortEnum, GetStocksAggregatesTimespanEnum, GetStocksSnapshotTickers200ResponseAllOfTickersInner } from "@polygon.io/client-js";
+import { GetStocksSnapshotTickers200ResponseAllOfTickersInner } from "@polygon.io/client-js";
 
 type SnapshotTicker = GetStocksSnapshotTickers200ResponseAllOfTickersInner;
 

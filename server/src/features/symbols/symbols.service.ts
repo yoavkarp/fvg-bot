@@ -1,6 +1,8 @@
+import { websocketClient } from "@polygon.io/client-js";
 import { TICKER_RE } from "./symbols.constants.js";
 import { WikiApiResponse } from "./symbols.interfaces.js";
 import { parseTickersFromWikitext } from "./symbols.utils.js";
+import { config } from "../../config.js";
 
 class SymbolsService {
     async getNasdaq100Symbols(): Promise<string[]> {

@@ -2,8 +2,8 @@ name: Deploy
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
   deploy:
@@ -19,5 +19,6 @@ jobs:
             sudo systemctl start docker || true
             cd ~/fvg
             rm -rf ./server/db.json
-            git pull origin main
+            git fetch --tags --force
+            git checkout --force ${{ github.ref_name }}
             docker compose up --build -d
