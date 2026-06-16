@@ -18,5 +18,6 @@ jobs:
           script: |
             sudo systemctl start docker || true
             cd ~/fvg
+            rm -rf ./server/db.json
             git pull origin main
             docker compose up --build -d
